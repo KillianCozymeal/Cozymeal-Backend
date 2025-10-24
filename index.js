@@ -101,6 +101,48 @@ Crée un plan alimentaire de 7 jours, clair, détaillé, avec les quantités, ca
     res.status(500).send("Erreur : " + err.message);
   }
 });
+// --- Webhook Shopify pour les commandes payées ---
+import crypto from "crypto";
+
+function verifyShopifyWebhook(req) {
+  const hmac = req.get("X-Shopify-Hmac-Sha256");
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+  const digest = crypto
+    .createHmac("sha256", secret)
+    .update(JSON.stringify(req.body), "utf8")
+    .digest("base64");
+  return hmac === digest;
+}
+
+app.post("/shopify/webhook", async (req, res) => {
+  console.log("📦 Webhook Shopify reçu !");
+
+  if (!verifyShopifyWebhook(req)) {
+    console.log("❌ Signature invalide Shopify");
+    return res.status(401).send("Unauthorized");
+  }
+
+  const order = req.body;
+  console.log("Commande reçue :", order.id);
+
+  try {
+    const email = order.email;
+    const profileId = order.line_items[0].properties?.profile_id;
+
+    if (!profileId) {
+      console.log("⚠️ Pas de profil lié à la commande");
+      return res.status(200).send("No profile ID");
+    }
+
+    // Ici : récupération du profil depuis Firebase et génération du PDF CozyMeal
+    console.log("📧 Prêt à envoyer le programme à :", email);
+
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("💥 Erreur webhook Shopify :", err);
+    res.status(500).send("Server error");
+  }
+});
 
 app.get("/", (req, res) => res.send("API CozyMeal opérationnelle 🚀"));
 const PORT = process.env.PORT || 3000;
