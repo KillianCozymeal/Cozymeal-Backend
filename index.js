@@ -8,7 +8,12 @@ import OpenAI from "openai";
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString(); // on garde le corps brut
+  }
+}));
+
 
 const openai = new OpenAI({ apiKey:"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"});
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
