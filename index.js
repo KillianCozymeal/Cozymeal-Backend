@@ -109,14 +109,23 @@ Crée un plan alimentaire de 7 jours, clair, détaillé, avec les quantités, ca
 // --- Webhook Shopify pour les commandes payées ---
 import crypto from "crypto";
 
-function verifyShopifyWebhook(req) {
-  const hmac = req.get("X-Shopify-Hmac-Sha256");
+ffunction verifyShopifyWebhook(req) {
+  const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+
   const digest = crypto
     .createHmac("sha256", secret)
-    .update(JSON.stringify(req.body), "utf8")
+    .update(req.rawBody, "utf8") // ici on utilise le corps BRUT
     .digest("base64");
-  return hmac === digest;
+
+  const match = crypto.timingSafeEqual(
+    Buffer.from(digest, "utf8"),
+    Buffer.from(hmacHeader, "utf8")
+  );
+
+  return match;
+}
+
 }
 
 app.post("/shopify/webhook", async (req, res) => {
