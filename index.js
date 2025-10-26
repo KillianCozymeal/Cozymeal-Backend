@@ -127,8 +127,6 @@ function verifyShopifyWebhook(req) {
   return match;
 }
 
-}
-
 app.post("/shopify/webhook", async (req, res) => {
   console.log("📦 Webhook Shopify reçu !");
   
