@@ -15,6 +15,7 @@ app.use(bodyParser.json({
 }));
 
 
+
 const openai = new OpenAI({ apiKey:"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"});
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -109,7 +110,7 @@ Crée un plan alimentaire de 7 jours, clair, détaillé, avec les quantités, ca
 // --- Webhook Shopify pour les commandes payées ---
 import crypto from "crypto";
 
-ffunction verifyShopifyWebhook(req) {
+function verifyShopifyWebhook(req) {
   const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
