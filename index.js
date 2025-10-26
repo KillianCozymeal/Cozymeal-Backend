@@ -131,7 +131,7 @@ function verifyShopifyWebhook(req) {
 
 app.post("/shopify/webhook", async (req, res) => {
   console.log("📦 Webhook Shopify reçu !");
-
+  
   if (!verifyShopifyWebhook(req)) {
     console.log("❌ Signature invalide Shopify");
     return res.status(401).send("Unauthorized");
@@ -149,7 +149,7 @@ app.post("/shopify/webhook", async (req, res) => {
       return res.status(200).send("No profile ID");
     }
 
-    // Ici : récupération du profil depuis Firebase et génération du PDF CozyMeal
+    // Récupération du profil et envoi du PDF ici
     console.log("📧 Prêt à envoyer le programme à :", email);
 
     res.status(200).send("OK");
@@ -159,6 +159,5 @@ app.post("/shopify/webhook", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => res.send("API CozyMeal opérationnelle 🚀"));
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Serveur CozyMeal sur le port ${PORT}`));
+// ✅ Fin du fichier
+app.listen(3000, () => console.log("API CozyMeal opérationnelle 🚀"));
