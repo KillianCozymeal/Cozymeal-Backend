@@ -8,11 +8,15 @@ import OpenAI from "openai";
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString(); // on garde le corps brut
+// ✅ Désactiver bodyParser pour le webhook Shopify uniquement
+app.use((req, res, next) => {
+  if (req.originalUrl === "/shopify/webhook") {
+    next(); // ne pas parser le JSON pour cette route
+  } else {
+    bodyParser.json()(req, res, next);
   }
-}));
+});
+
 
 
 
