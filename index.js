@@ -127,17 +127,18 @@ function verifyShopifyWebhook(req) {
   return match;
 }
 
-// Middleware pour lire le corps brut UNIQUEMENT pour Shopify
 app.post("/shopify/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   console.log("📦 Webhook Shopify reçu !");
 
   const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
-  // Calcul de la signature à partir du corps brut
+  // ✅ Conversion explicite en Buffer
+  const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body);
+
   const digest = crypto
     .createHmac("sha256", secret)
-    .update(req.body, "utf8")
+    .update(rawBody)
     .digest("base64");
 
   if (digest !== hmacHeader) {
@@ -145,7 +146,9 @@ app.post("/shopify/webhook", express.raw({ type: "application/json" }), async (r
     return res.status(401).send("Unauthorized");
   }
 
-  const order = JSON.parse(req.body.toString("utf8"));
+  // ✅ On parse le JSON après vérification
+  const order = JSON.parse(rawBody.toString("utf8"));
+  console.log("✅ Signature valide Shopify !");
   console.log("Commande reçue :", order.id);
 
   try {
