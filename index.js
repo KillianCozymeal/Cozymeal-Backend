@@ -127,53 +127,50 @@ function verifyShopifyWebhook(req) {
   return match;
 }
 
-// ✅ Webhook Shopify - version stable (signature garantie)
+// ⚠️ On désactive tout bodyParser pour cette route
+import getRawBody from "raw-body";
+
 app.post("/shopify/webhook", async (req, res) => {
   console.log("📦 Webhook Shopify reçu !");
 
   try {
-    // Lire le flux brut manuellement
-    let rawBody = "";
-    req.on("data", (chunk) => {
-      rawBody += chunk;
-    });
+    // Lire le corps brut avec raw-body
+    const rawBody = await getRawBody(req);
+    const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
+    const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
-    req.on("end", async () => {
-      const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
-      const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+    // Calcul de la signature Shopify
+    const digest = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody, "utf8")
+      .digest("base64");
 
-      // Calcul de la signature sur le texte brut
-      const digest = crypto
-        .createHmac("sha256", secret)
-        .update(rawBody, "utf8")
-        .digest("base64");
+    if (digest !== hmacHeader) {
+      console.log("❌ Signature invalide Shopify");
+      return res.status(401).send("Unauthorized");
+    }
 
-      if (digest !== hmacHeader) {
-        console.log("❌ Signature invalide Shopify");
-        return res.status(401).send("Unauthorized");
-      }
+    console.log("✅ Signature valide Shopify !");
+    const order = JSON.parse(rawBody.toString("utf8"));
 
-      console.log("✅ Signature valide Shopify !");
-      const order = JSON.parse(rawBody);
+    console.log("Commande reçue :", order.id);
 
-      console.log("Commande reçue :", order.id);
+    const email = order.email;
+    const profileId = order.line_items?.[0]?.properties?.profile_id;
 
-      const email = order.email;
-      const profileId = order.line_items?.[0]?.properties?.profile_id;
+    if (!profileId) {
+      console.log("⚠️ Pas de profil lié à la commande");
+      return res.status(200).send("No profile ID");
+    }
 
-      if (!profileId) {
-        console.log("⚠️ Pas de profil lié à la commande");
-        return res.status(200).send("No profile ID");
-      }
-
-      console.log("📧 Prêt à envoyer le programme à :", email);
-      res.status(200).send("OK");
-    });
+    console.log("📧 Prêt à envoyer le programme à :", email);
+    res.status(200).send("OK");
   } catch (err) {
     console.error("💥 Erreur webhook Shopify :", err);
     res.status(500).send("Server error");
   }
 });
+
 
 
 // ✅ Fin du fichier
