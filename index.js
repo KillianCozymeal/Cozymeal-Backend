@@ -127,29 +127,37 @@ function verifyShopifyWebhook(req) {
   return match;
 }
 
-app.post("/shopify/webhook", async (req, res) => {
+// Middleware pour lire le corps brut UNIQUEMENT pour Shopify
+app.post("/shopify/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   console.log("📦 Webhook Shopify reçu !");
-  
-  if (!verifyShopifyWebhook(req)) {
+
+  const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+
+  // Calcul de la signature à partir du corps brut
+  const digest = crypto
+    .createHmac("sha256", secret)
+    .update(req.body, "utf8")
+    .digest("base64");
+
+  if (digest !== hmacHeader) {
     console.log("❌ Signature invalide Shopify");
     return res.status(401).send("Unauthorized");
   }
 
-  const order = req.body;
+  const order = JSON.parse(req.body.toString("utf8"));
   console.log("Commande reçue :", order.id);
 
   try {
     const email = order.email;
-    const profileId = order.line_items[0].properties?.profile_id;
+    const profileId = order.line_items?.[0]?.properties?.profile_id;
 
     if (!profileId) {
       console.log("⚠️ Pas de profil lié à la commande");
       return res.status(200).send("No profile ID");
     }
 
-    // Récupération du profil et envoi du PDF ici
     console.log("📧 Prêt à envoyer le programme à :", email);
-
     res.status(200).send("OK");
   } catch (err) {
     console.error("💥 Erreur webhook Shopify :", err);
