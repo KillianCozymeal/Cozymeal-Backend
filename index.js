@@ -127,46 +127,54 @@ function verifyShopifyWebhook(req) {
   return match;
 }
 
-app.post("/shopify/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+// ✅ Webhook Shopify - version stable (signature garantie)
+app.post("/shopify/webhook", async (req, res) => {
   console.log("📦 Webhook Shopify reçu !");
 
-  const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
-
-  // ✅ Conversion explicite en Buffer
-  const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body);
-
-  const digest = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody)
-    .digest("base64");
-
-  if (digest !== hmacHeader) {
-    console.log("❌ Signature invalide Shopify");
-    return res.status(401).send("Unauthorized");
-  }
-
-  // ✅ On parse le JSON après vérification
-  const order = JSON.parse(rawBody.toString("utf8"));
-  console.log("✅ Signature valide Shopify !");
-  console.log("Commande reçue :", order.id);
-
   try {
-    const email = order.email;
-    const profileId = order.line_items?.[0]?.properties?.profile_id;
+    // Lire le flux brut manuellement
+    let rawBody = "";
+    req.on("data", (chunk) => {
+      rawBody += chunk;
+    });
 
-    if (!profileId) {
-      console.log("⚠️ Pas de profil lié à la commande");
-      return res.status(200).send("No profile ID");
-    }
+    req.on("end", async () => {
+      const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
+      const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
-    console.log("📧 Prêt à envoyer le programme à :", email);
-    res.status(200).send("OK");
+      // Calcul de la signature sur le texte brut
+      const digest = crypto
+        .createHmac("sha256", secret)
+        .update(rawBody, "utf8")
+        .digest("base64");
+
+      if (digest !== hmacHeader) {
+        console.log("❌ Signature invalide Shopify");
+        return res.status(401).send("Unauthorized");
+      }
+
+      console.log("✅ Signature valide Shopify !");
+      const order = JSON.parse(rawBody);
+
+      console.log("Commande reçue :", order.id);
+
+      const email = order.email;
+      const profileId = order.line_items?.[0]?.properties?.profile_id;
+
+      if (!profileId) {
+        console.log("⚠️ Pas de profil lié à la commande");
+        return res.status(200).send("No profile ID");
+      }
+
+      console.log("📧 Prêt à envoyer le programme à :", email);
+      res.status(200).send("OK");
+    });
   } catch (err) {
     console.error("💥 Erreur webhook Shopify :", err);
     res.status(500).send("Server error");
   }
 });
+
 
 // ✅ Fin du fichier
 app.listen(3000, () => console.log("API CozyMeal opérationnelle 🚀"));
