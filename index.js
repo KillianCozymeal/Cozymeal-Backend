@@ -162,13 +162,68 @@ app.post("/shopify/webhook", async (req, res) => {
       return res.status(200).send("No profile ID");
     }
 
-    console.log("📧 Prêt à envoyer le programme à :", email);
-    res.status(200).send("OK");
+    // 🔥 Récupération du profil depuis Firebase
+    const doc = await db.collection("profiles").doc(profileId).get();
+    if (!doc.exists) {
+      console.log("⚠️ Profil introuvable :", profileId);
+      return res.status(200).send("Profile not found");
+    }
+
+    const profile = doc.data();
+
+    // --- 🧠 Génération du plan avec OpenAI ---
+    const prompt = `
+Tu es un coach nutrition CozyMeal. 
+Profil : ${profile.age} ans, ${profile.poids} kg, ${profile.taille} cm, ${profile.sexe}, activité ${profile.activite}, objectif ${profile.objectif}.
+Crée un plan alimentaire clair et motivant de 7 jours, avec les repas, quantités et calories.
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const planText = completion.choices[0].message.content;
+
+    // --- 🧾 Création du PDF ---
+    const docPdf = new PDFDocument();
+    const buffers = [];
+    docPdf.on("data", buffers.push.bind(buffers));
+    docPdf.on("end", async () => {
+      const pdfData = Buffer.concat(buffers);
+
+      const msg = {
+        to: email,
+        from: "mycozymeal@gmail.com",
+        subject: "Ton programme alimentaire personnalisé - CozyMeal",
+        text: "Merci pour ta commande ! Ton programme personnalisé est en pièce jointe 💪",
+        attachments: [
+          {
+            content: pdfData.toString("base64"),
+            filename: "Programme_CozyMeal.pdf",
+            type: "application/pdf",
+            disposition: "attachment",
+          },
+        ],
+      };
+
+      await sgMail.send(msg);
+      console.log("✅ Programme envoyé avec succès à :", email);
+    });
+
+    // --- 🧩 Design du PDF ---
+    docPdf.fillColor("#F26835").fontSize(26).text("CozyMeal", { align: "center" });
+    docPdf.moveDown().fillColor("#000").fontSize(16).text("Programme alimentaire personnalisé", { align: "center" });
+    docPdf.moveDown().fontSize(12).text(planText);
+    docPdf.end();
+
+    res.status(200).send("Programme généré et envoyé !");
   } catch (err) {
     console.error("💥 Erreur webhook Shopify :", err);
     res.status(500).send("Server error");
   }
 });
+
 
 
 
