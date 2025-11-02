@@ -108,7 +108,7 @@ docPdf.fillColor("#F26835");
 
 // Logo CozyMeal
 try {
-  docPdf.image("/opt/render/project/src/CozyMeal Logo - Lunch Box Brand.png", docPdf.page.width / 2 - 60, 40, { width: 120 });
+  docPdf.image("/opt/render/project/src/https://cdn.shopify.com/s/files/1/0945/8047/4240/files/CozyMeal_Logo_-_Lunch_Box_Brand.png?v=1759249673", docPdf.page.width / 2 - 60, 40, { width: 120 });
 } catch (err) {
   console.warn("⚠️ Logo introuvable sur Render, tu peux le placer dans /src si besoin");
 }
@@ -228,10 +228,47 @@ app.post("/shopify/webhook", async (req, res) => {
 
     // --- 🧠 Génération du plan avec OpenAI ---
     const prompt = `
-Tu es un coach nutrition CozyMeal. 
-Profil : ${profile.age} ans, ${profile.poids} kg, ${profile.taille} cm, ${profile.sexe}, activité ${profile.activite}, objectif ${profile.objectif}.
-Crée un plan alimentaire clair et motivant de 7 jours, avec les repas, quantités et calories.
+Tu es un coach nutrition expert de la marque CozyMeal, spécialiste du bien-être et de la nutrition durable.
+Ta mission est de créer un **programme alimentaire de 7 jours 100% personnalisé** pour ton client.
+
+Voici ses informations :
+- Sexe : ${profile.sexe}
+- Âge : ${profile.age} ans
+- Taille : ${profile.taille} cm
+- Poids : ${profile.poids} kg
+- Activité : ${profile.activite}
+- Objectif : ${profile.objectif}
+- Allergies ou préférences : ${profile.allergies || "Aucune"}
+
+🔸 **Objectif :**
+Rédige un plan adapté à ce profil, clair, motivant et humain. 
+Chaque journée doit comprendre :
+- Petit-déjeuner
+- Déjeuner
+- Dîner
+- Collation(s)
+Inclure les **quantités approximatives**, les **calories estimées**, et **des conseils pratiques**.
+
+🔸 **Ton :**
+Chaleureux, encourageant et professionnel — comme un vrai coach CozyMeal.
+Évite le jargon, sois naturel, positif, et donne envie au client de suivre le plan.
+
+🔸 **Mise en forme :**
+Rédige le texte de manière fluide, structurée par jour :
+Jour 1 :
+Petit-déjeuner : ...
+Déjeuner : ...
+Dîner : ...
+Collations : ...
+etc. jusqu’à Jour 7.
+
+🔸 **Conseils finaux :**
+Ajoute à la fin du plan une petite note personnalisée de motivation signée CozyMeal, par exemple :
+"Rappelle-toi : ce n’est pas une course, mais un chemin vers ton bien-être. On avance ensemble 💛"
+
+Génère uniquement le texte final du plan (pas de balises Markdown).
 `;
+
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
