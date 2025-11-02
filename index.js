@@ -74,36 +74,91 @@ Crée un plan alimentaire de 7 jours, clair, détaillé, avec les quantités, ca
 
     const planText = completion.choices[0].message.content;
 
-    // Crée le PDF
-    const docPdf = new PDFDocument();
-    const buffers = [];
-    docPdf.on("data", buffers.push.bind(buffers));
-    docPdf.on("end", async () => {
-      const pdfData = Buffer.concat(buffers);
+   // --- 🧾 Création du PDF CozyMeal Design ---
+const docPdf = new PDFDocument({ margin: 50 });
 
-      const msg = {
-        to: email,
-        from: "mycozymeal@gmail.com",
-        subject: "Ton programme alimentaire personnalisé - CozyMeal",
-        text: "Merci pour ta commande ! Ton programme est en pièce jointe.",
-        attachments: [
-          {
-            content: pdfData.toString("base64"),
-            filename: "Programme_CozyMeal.pdf",
-            type: "application/pdf",
-            disposition: "attachment",
-          },
-        ],
-      };
+// --- Buffer pour la génération ---
+const buffers = [];
+docPdf.on("data", buffers.push.bind(buffers));
+docPdf.on("end", async () => {
+  const pdfData = Buffer.concat(buffers);
 
-      await sgMail.send(msg);
-    });
+  const msg = {
+    to: email,
+    from: "mycozymeal@gmail.com",
+    subject: "Ton programme alimentaire personnalisé - CozyMeal",
+    text: "Merci pour ta commande ! Ton programme personnalisé est en pièce jointe 💪",
+    attachments: [
+      {
+        content: pdfData.toString("base64"),
+        filename: "Programme_CozyMeal.pdf",
+        type: "application/pdf",
+        disposition: "attachment",
+      },
+    ],
+  };
 
-    // Design du PDF
-    docPdf.fillColor("#F26835").fontSize(24).text("CozyMeal", { align: "center" });
-    docPdf.moveDown().fillColor("#000").fontSize(16).text("Programme alimentaire personnalisé", { align: "center" });
-    docPdf.moveDown().fontSize(12).text(planText);
-    docPdf.end();
+  await sgMail.send(msg);
+  console.log("✅ Programme envoyé avec succès à :", email);
+});
+
+// === PAGE 1 — Profil & résumé ===
+docPdf.rect(0, 0, docPdf.page.width, docPdf.page.height).fill("#FFF6F3"); // fond cozy
+docPdf.fillColor("#F26835");
+
+// Logo CozyMeal
+try {
+  docPdf.image("/opt/render/project/src/CozyMeal Logo - Lunch Box Brand.png", docPdf.page.width / 2 - 60, 40, { width: 120 });
+} catch (err) {
+  console.warn("⚠️ Logo introuvable sur Render, tu peux le placer dans /src si besoin");
+}
+
+docPdf.moveDown(6);
+docPdf.fontSize(22).text("Programme Alimentaire Personnalisé", { align: "center" });
+docPdf.moveDown(2);
+
+// Section profil client
+docPdf.fontSize(14).fillColor("#000");
+docPdf.text(`Sexe : ${profile.sexe}`);
+docPdf.text(`Âge : ${profile.age} ans`);
+docPdf.text(`Taille : ${profile.taille} cm`);
+docPdf.text(`Poids : ${profile.poids} kg`);
+docPdf.text(`Activité : ${profile.activite}`);
+docPdf.text(`Objectif : ${profile.objectif}`);
+docPdf.text(`Allergies / Préférences : ${profile.allergies || "Aucune"}`);
+docPdf.moveDown(2);
+
+// Ligne de séparation
+docPdf.moveTo(50, docPdf.y).lineTo(550, docPdf.y).stroke("#F26835");
+docPdf.moveDown(2);
+
+// Résumé général
+docPdf.fontSize(16).fillColor("#F26835").text("Résumé du programme", { underline: true });
+docPdf.moveDown(1);
+docPdf.fontSize(12).fillColor("#000").text(
+  profile.objectif === "Perdre du gras"
+    ? "Ton plan est conçu pour t’aider à perdre du gras tout en conservant ton énergie. L’accent est mis sur les protéines maigres, les légumes et les glucides complexes."
+    : "Ton plan t’aidera à prendre du muscle de façon saine, en augmentant ton apport en protéines et en glucides de qualité."
+);
+docPdf.moveDown(1.5);
+docPdf.text("Chaque journée est équilibrée pour t’apporter les bons nutriments, sans frustration ni excès.", { align: "justify" });
+
+// Pied de page
+docPdf.fontSize(10).fillColor("#999").text("© CozyMeal - Programme personnalisé généré automatiquement", 50, 760, { align: "center" });
+
+// === PAGE 2 — Plan détaillé GPT ===
+docPdf.addPage();
+docPdf.rect(0, 0, docPdf.page.width, docPdf.page.height).fill("#FFF6F3");
+docPdf.fillColor("#F26835").fontSize(20).text("Plan alimentaire détaillé (7 jours)", { align: "center" });
+docPdf.moveDown(1.5);
+
+docPdf.fontSize(12).fillColor("#000").text(planText, { align: "left", lineGap: 6 });
+
+// Pied de page page 2
+docPdf.fontSize(10).fillColor("#999").text("CozyMeal - Mange bien, vis mieux 💛", 50, 760, { align: "center" });
+
+docPdf.end();
+
 
     res.status(200).send("Programme généré et envoyé.");
   } catch (err) {
