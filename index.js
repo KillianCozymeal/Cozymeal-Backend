@@ -157,7 +157,48 @@ docPdf.fontSize(12).fillColor("#000").text(planText, { align: "left", lineGap: 6
 // Pied de page page 2
 docPdf.fontSize(10).fillColor("#999").text("CozyMeal - Mange bien, vis mieux 💛", 50, 760, { align: "center" });
 
+// === PAGE 3 — Conseils personnalisés ===
+docPdf.addPage();
+docPdf.rect(0, 0, docPdf.page.width, docPdf.page.height).fill("#FFF6F3");
+
+docPdf.fillColor("#F26835").fontSize(22).text("Conseils personnalisés CozyMeal 💛", { align: "center" });
+docPdf.moveDown(2);
+
+docPdf.fontSize(12).fillColor("#000").text(
+`💧 **Hydratation**
+Bois au minimum 2 à 3 litres d’eau par jour. L’hydratation aide à la digestion, à la concentration et à la récupération musculaire. 
+
+🕒 **Organisation des repas**
+Essaie de garder des horaires réguliers. Un corps régulier est un corps équilibré. Si tu n’as pas faim le matin, prends une collation légère.
+
+🍽️ **Portions & équilibre**
+Remplis ton assiette selon la règle CozyMeal :
+- 1/2 de légumes
+- 1/4 de protéines
+- 1/4 de féculents complets
+Ajoute une cuillère d’huile végétale de qualité (olive, colza, etc.).
+
+😴 **Sommeil & récupération**
+Un bon sommeil est ton meilleur allié : 7 à 8h par nuit favorisent la régénération musculaire et la gestion du stress.
+
+🏃‍♂️ **Activité physique**
+Bouge un peu chaque jour, même 20 minutes de marche. L’essentiel, c’est la régularité.
+
+💛 **Motivation CozyMeal**
+Souviens-toi : tu n’as pas besoin d’être parfait, juste constant.  
+Chaque petit pas compte, et ton effort d’aujourd’hui construit ton bien-être de demain.  
+
+On avance ensemble,  
+L’équipe CozyMeal 🍽️`
+, {
+  align: "justify",
+  lineGap: 6
+});
+
+docPdf.fontSize(10).fillColor("#999").text("© CozyMeal - Nutrition & Bien-être | www.cozymeal.fr", 50, 760, { align: "center" });
+
 docPdf.end();
+
 
 
     res.status(200).send("Programme généré et envoyé.");
